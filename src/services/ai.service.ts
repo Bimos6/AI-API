@@ -1,23 +1,11 @@
-import OpenAI from 'openai';
-import { config } from '../config';
-import { prompts } from '../utils/prompts';
-
-const openai = new OpenAI({ apiKey: config.openaiApiKey });
-
 export class AIService {
     
     static async summarize(text: string, maxWords: number): Promise<string> {
-        const response = await openai.chat.completions.create({
-            model: config.openaiModel,
-            messages: [
-                { role: 'system', content: 'Ты — ассистент для суммаризации текста.' },
-                { role: 'user', content: prompts.summarize(text, maxWords) }
-            ],
-            temperature: 0.3,
-            max_tokens: maxWords * 2
-        });
+        await this.delay(300);
         
-        return response.choices[0]?.message?.content || '';
+        // Возвращаем заглушку
+        const words = text.split(' ').slice(0, maxWords).join(' ');
+        return `[MOCK] Краткое содержание (${maxWords} слов): ${words}...`;
     }
 
     static async analyzeSentiment(text: string): Promise<{
@@ -25,33 +13,30 @@ export class AIService {
         confidence: number;
         explanation: string;
     }> {
-        const response = await openai.chat.completions.create({
-            model: config.openaiModel,
-            messages: [
-                { role: 'system', content: 'Ты — анализатор тональности текста. Отвечай строго в JSON.' },
-                { role: 'user', content: prompts.sentiment(text) }
-            ],
-            temperature: 0.1,
-            response_format: { type: 'json_object' }
-        });
+        await this.delay(200);
         
-        const content = response.choices[0]?.message?.content || '{}';
-        return JSON.parse(content);
+        const isPositive = text.includes('отлич') || text.includes('хорош') || text.includes('👍');
+        const isNegative = text.includes('плох') || text.includes('ужас') || text.includes('👎');
+        
+        return {
+            sentiment: isPositive ? 'positive' : isNegative ? 'negative' : 'neutral',
+            confidence: 0.95,
+            explanation: '[MOCK] Анализ выполнен в тестовом режиме'
+        };
     }
 
     static async extractKeywords(text: string, count: number): Promise<Array<{ word: string; relevance: number }>> {
-        const response = await openai.chat.completions.create({
-            model: config.openaiModel,
-            messages: [
-                { role: 'system', content: 'Ты — инструмент для извлечения ключевых слов. Отвечай строго в JSON.' },
-                { role: 'user', content: prompts.keywords(text, count) }
-            ],
-            temperature: 0.2,
-            response_format: { type: 'json_object' }
-        });
+        await this.delay(250);
         
-        const content = response.choices[0]?.message?.content || '[]';
-        const parsed = JSON.parse(content);
-        return Array.isArray(parsed) ? parsed : parsed.keywords || [];
+        const words = text.split(' ')
+            .filter(w => w.length > 3)
+            .slice(0, count)
+            .map(word => ({ word, relevance: 0.9 }));
+            
+        return words.length ? words : [{ word: '[MOCK] тестовое_слово', relevance: 0.5 }];
+    }
+
+    private static delay(ms: number): Promise<void> {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 }
